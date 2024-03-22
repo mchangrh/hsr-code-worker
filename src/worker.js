@@ -1,7 +1,4 @@
-const codeRegex = new RegExp(/\n\t-->\|(.+)\|(?:A|G|NA)<!--/)
-const detailsRegex = new RegExp(/\n\t-->\|(.+?)<!--/)
-const dateRegex = new RegExp(/\n\t-->\|([\d-]+)(?:\|([\d-]+))?(?:\|indef)?<!--/)
-const codeURL = "https://genshin-impact.fandom.com/wiki/Promotional_Code?action=raw"
+const codeURL = "https://honkai-star-rail.fandom.com/wiki/Redemption_Code?action=raw"
 
 const getCodes = async () => {
   const body = await fetch(codeURL, {
@@ -10,24 +7,25 @@ const getCodes = async () => {
       cacheEverything: true
     }
   }).then(response => response.text())
-  const comboRegex = new RegExp(codeRegex.source + detailsRegex.source + dateRegex.source, "g")
+  const comboRegex = new RegExp(/{{Redemption Code Row\|(.+?)\|(?:ref=.+\|)?(A|G|NA)\|{{Item List\|(.*)\|.+?\|([\d-]+)\|([\d-]+|unknown)}}/, "g")
   // match all codes
-  const allCodes = []
   let codeArray = []
   for (const match of body.matchAll(comboRegex)) {
-    const multiCodeSplit = match[1].split(";")
-    multiCodeSplit.forEach((splitCode) => {
-      // if there are multiple codes, reply with multiple
-      allCodes.push({
-        code: splitCode,
-        description: match[2],
-        discovery: match[3],
-        expiry: match[4],
-        link: `https://genshin.hoyoverse.com/en/gift?code=${splitCode}`
-      })
+    codeArray.push({
+      code: match[1],
+      server: match[2],
+      description: match[3],
+      discovery: match[4],
+      expiry: match[5],
+      link: `https://hsr.hoyoverse.com/gift?code=${match[1]}`
     })
-    // remove codes that have expired
-    codeArray = allCodes.filter(code => (!code.expiry) || (new Date(code.expiry) > new Date()))
+    // remove codes that have expired and remove unknown expiry dates
+    codeArray = codeArray
+      .map(code => {
+        if (code.expiry === "unknown") delete code.expiry
+        return code
+      })
+      .filter(code => (!code.expiry) || (new Date(code.expiry) > new Date()))
   }
   return JSON.stringify(codeArray, null, 2)
 }
